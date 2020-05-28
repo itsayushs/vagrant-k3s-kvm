@@ -1,0 +1,44 @@
+- hosts: all
+  become: true
+  tasks: 
+  - name: 'configure docker repo'
+    yum_repository:
+      name: 'docker-repo'
+      description: 'Dockerce stable repo'
+      baseurl: https://download.docker.com/linux/centos/7/x86_64/stable/
+      enabled: yes
+      gpgcheck: yes
+      gpgkey: https://download.docker.com/linux/centos/gpg
+  - name: 'install docker'
+    package: 
+      name: "{{ item }}"
+      state: present 
+    loop:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+  - name: 'add vagrant user to docker group'
+    user:
+      name: 'vagrant'
+      groups: 'docker'
+  - name: 'start and enable docker-service'
+    service: 
+     name: docker 
+     state: started
+     enabled: yes
+  - name: 'k3s deps installer'
+    command: 'rpm -i https://rpm.rancher.io/k3s-selinux-0.1.1-rc1.el7.noarch.rpm'
+    ignore_errors: yes
+  - name: 'k3s installer'
+    shell: 'curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--docker" sh -'
+    when: ansible_facts['hostname'] == 'master'
+  - name: 'get node token'
+    command: 'cat /var/lib/rancher/k3s/server/node-token'
+    register: token
+    when: ansible_facts['hostname'] == 'master'
+  - name: 'k3s node installer'
+    debug:
+      msg: 
+      - 'use this command to node after provisioning:'
+      - 'curl -sfL https://get.k3s.io | K3S_URL=https://master:6443 K3S_TOKEN={{ token.stdout }} sh -'
+    when: ansible_facts['hostname'] == 'master'
