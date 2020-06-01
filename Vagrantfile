@@ -1,3 +1,4 @@
+# Fed31 workaround [latest vagrantver]: sudo dnf upgrade --enablerepo=updates-testing --advisory=FEDORA-2020-09c472786c 
 Vagrant.configure("2") do |config|
   config.vm.box = "centos/7"
   config.vm.define :master do |master|
